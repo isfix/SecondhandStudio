@@ -72,8 +72,18 @@ export const ImageUpload = ({ onImagesUploaded, maxImages = 5, existingImages = 
             },
           });
 
+          // Get the public URL for the uploaded image
           const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(path);
-          const url = publicUrl;
+          console.log('Supabase publicUrl for uploaded image:', publicUrl, 'path:', path);
+          let url = publicUrl;
+          // Fallback: if publicUrl is empty, try constructing it manually
+          if (!url) {
+            url = `${supabase.storageUrl}/object/public/images/${path}`;
+            console.warn('Fallback public URL used:', url);
+          }
+
+          // Optionally, test if the URL is accessible
+          // (skip for now, but could add a fetch(url) check)
 
           setUploadingImages(prev => 
             prev.map(img => 
@@ -205,6 +215,7 @@ export const ImageUpload = ({ onImagesUploaded, maxImages = 5, existingImages = 
                 src={imageUrl}
                 alt={`Upload ${index + 1}`}
                 className="w-full h-full object-cover"
+                onError={e => { (e.target as HTMLImageElement).src = '/icon.png'; }}
               />
               <Button
                 variant="destructive"

@@ -68,7 +68,7 @@ const defaultValues: Omit<FormData, 'sellerId'> = {
 };
 
 export const ItemForm = ({ initialData, onFormSubmit }: ItemFormProps) => {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -118,9 +118,16 @@ export const ItemForm = ({ initialData, onFormSubmit }: ItemFormProps) => {
 
     setIsSubmitting(true);
     try {
+      let token = null;
+      if (firebaseUser) {
+        token = await firebaseUser.getIdToken();
+      }
       const response = await fetch('/api/items', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ ...data, images, price: parseFloat(data.price) }),
       });
 

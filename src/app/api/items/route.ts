@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where, addDoc, Timestamp } from 'firebase/firestore';
+import { adminAuth } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -55,18 +56,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // For production, verify the Firebase Auth token here using the Admin SDK.
-    // For development, allow unauthenticated requests but log a warning.
     let userId = 'anonymous';
-    const decodedTokenHeader = request.headers.get('X-Decoded-Token');
-    if (decodedTokenHeader) {
+    let token = null;
+    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.replace('Bearer ', '');
       try {
-        const decodedToken = JSON.parse(decodedTokenHeader);
+        const decodedToken = await adminAuth.verifyIdToken(token);
         userId = decodedToken.uid;
-      } catch (e) {
-        console.warn('Invalid X-Decoded-Token header, using anonymous user.');
+      } catch (err) {
+        console.warn('Invalid Firebase ID token:', err);
+        return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
       }
     } else {
-      console.warn('No X-Decoded-Token header, using anonymous user.');
+      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -87,6 +90,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating item:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: 'Failed to create item', details: errorMessage }, { status: 500 });
+    const errorStack = error instanceof Error ? error.stack : null;
+    return NextResponse.json({ error: 'Failed to create item', details: errorMessage, stack: errorStack }, { status: 500 });
   }
 }
