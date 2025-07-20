@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
 import { deleteFromStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface ImageUploadProps {
   onImagesUploaded: (images: string[]) => void;

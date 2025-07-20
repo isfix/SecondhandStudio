@@ -38,6 +38,9 @@ Thumbs.db
 firebase-adminsdk.json
 serviceAccountKey.json
 
+# Firebase service account key
+firebase-service-account.json
+
 # Editor/IDE folders
 .idea/
 .vscode/
@@ -55,3 +58,4 @@ serviceAccountKey.json
 *.key
 Lighthouse Secondhand report.pdf
 LIGHTHOUSE.MD
+preloved-77b6f-firebase-adminsdk-fbsvc-967a28c4bf.json
