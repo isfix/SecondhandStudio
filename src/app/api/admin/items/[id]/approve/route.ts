@@ -1,19 +1,22 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
     const { adminNotes, approvedBy } = await request.json();
-    await updateDoc(doc(db, 'items', id), {
-      approvalStatus: 'approved',
-      isActive: true,
-      adminNotes: adminNotes || null,
-      approvedAt: Timestamp.now(),
-      approvedBy: approvedBy || null,
-      updatedAt: Timestamp.now(),
-    });
+    const { error } = await supabase
+      .from('items')
+      .update({
+        approvalStatus: 'approved',
+        isActive: true,
+        adminNotes: adminNotes || null,
+        approvedAt: new Date().toISOString(),
+        approvedBy: approvedBy || null,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw error;
     return NextResponse.json({ message: 'Item approved' });
   } catch (error) {
     console.error(`Error approving item ${id}:`, error);

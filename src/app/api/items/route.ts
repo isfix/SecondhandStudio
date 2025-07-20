@@ -1,8 +1,6 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, addDoc, Timestamp } from 'firebase/firestore';
-import { adminAuth } from '@/lib/firebase-admin';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -22,30 +20,30 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    let q = collection(db, 'items');
-    let qFilters = [];
+    let query = supabase.from('items').select('*');
     if (filters.category && filters.category !== 'all') {
-      qFilters.push(where('category', '==', filters.category));
+      query = query.eq('category', filters.category);
     }
     if (filters.size && filters.size !== 'all') {
-      qFilters.push(where('size', '==', filters.size));
+      query = query.eq('size', filters.size);
     }
     if (filters.condition && filters.condition !== 'all') {
-      qFilters.push(where('condition', '==', filters.condition));
+      query = query.eq('condition', filters.condition);
     }
     if (filters.sellerId) {
-      qFilters.push(where('sellerId', '==', filters.sellerId));
+      query = query.eq('sellerId', filters.sellerId);
     }
     if (filters.approvalStatus) {
-      qFilters.push(where('approvalStatus', '==', filters.approvalStatus));
+      query = query.eq('approvalStatus', filters.approvalStatus);
     } else {
-      qFilters.push(where('approvalStatus', '==', 'approved'));
+      query = query.eq('approvalStatus', 'approved');
     }
-    // Add more filters as needed
-    let itemsQuery = qFilters.length > 0 ? query(q, ...qFilters) : q;
-    const snapshot = await getDocs(itemsQuery);
-    const allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return NextResponse.json(allItems);
+    if (filters.itemIds && filters.itemIds.length > 0) {
+      query = query.in('id', filters.itemIds);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching items:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -55,38 +53,26 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // For production, verify the Firebase Auth token here using the Admin SDK.
-    let userId = 'anonymous';
-    let token = null;
-    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.replace('Bearer ', '');
-      try {
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        userId = decodedToken.uid;
-      } catch (err) {
-        console.warn('Invalid Firebase ID token:', err);
-        return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
-      }
-    } else {
-      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
+    // Get user from Supabase Auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized: No user' }, { status: 401 });
     }
-
     const body = await request.json();
     // Remove sellerId from the body to prevent spoofing
     const { sellerId, ...itemData } = body;
-
     const newItem = {
       ...itemData,
-      sellerId: userId,
+      sellerId: user.id,
       images: itemData.images || [],
       approvalStatus: 'pending',
       isActive: false,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-    const docRef = await addDoc(collection(db, 'items'), newItem);
-    return NextResponse.json({ id: docRef.id, ...newItem }, { status: 201 });
+    const { data, error } = await supabase.from('items').insert([newItem]).select().single();
+    if (error) throw error;
+    return NextResponse.json({ ...data }, { status: 201 });
   } catch (error) {
     console.error('Error creating item:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

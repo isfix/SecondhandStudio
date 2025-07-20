@@ -1,15 +1,24 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Use Firebase Auth to get the current user
-    // In a real app, use cookies/session or Firebase Admin SDK for SSR
-    // Here, we assume the client provides the user ID (not secure for production)
-    return NextResponse.json({ error: 'Not implemented: Use client-side Firebase Auth for user profile.' }, { status: 501 });
+    // Get user from Supabase Auth (assume JWT in header or cookie)
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    // Fetch user profile from Supabase 'users' table
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ user: data });
   } catch (error) {
     console.error('Error in GET /api/users/current:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -18,16 +27,20 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    // In a real app, verify the user is authenticated and authorized
-    const body = await request.json();
-    const { userId, ...updateData } = body;
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+    // Get user from Supabase Auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    await updateDoc(doc(db, 'users', userId), {
-      ...updateData,
-      updatedAt: new Date(),
-    });
+    const body = await request.json();
+    const updateData = { ...body, updatedAt: new Date().toISOString() };
+    const { error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', user.id);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ message: 'User updated' });
   } catch (error) {
     console.error('Error updating user in DB:', error);

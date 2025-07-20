@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -9,14 +8,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!adminNotes) {
       return NextResponse.json({ error: 'Admin notes are required for rejection' }, { status: 400 });
     }
-    await updateDoc(doc(db, 'items', id), {
-      approvalStatus: 'rejected',
-      isActive: false,
-      adminNotes: adminNotes,
-      approvedAt: Timestamp.now(),
-      approvedBy: approvedBy || null,
-      updatedAt: Timestamp.now(),
-    });
+    const { error } = await supabase
+      .from('items')
+      .update({
+        approvalStatus: 'rejected',
+        isActive: false,
+        adminNotes: adminNotes,
+        approvedAt: new Date().toISOString(),
+        approvedBy: approvedBy || null,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw error;
     return NextResponse.json({ message: 'Item rejected' });
   } catch (error) {
     console.error(`Error rejecting item ${id}:`, error);

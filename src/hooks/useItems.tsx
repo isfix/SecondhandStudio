@@ -2,8 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 
 interface UseItemsOptions {
   category?: string;
@@ -36,30 +35,35 @@ export const useItems = (options: UseItemsOptions = {}) => {
     setLoading(true);
     setError(null);
     try {
-      let q = collection(db, 'items');
-      let qFilters = [];
+      let query = supabase.from('items').select('*');
+      let filters = [];
       if (fetchOptions.category && fetchOptions.category !== 'all') {
-        qFilters.push(where('category', '==', fetchOptions.category));
+        filters.push(['category', 'eq', fetchOptions.category]);
       }
       if (fetchOptions.size && fetchOptions.size !== 'all') {
-        qFilters.push(where('size', '==', fetchOptions.size));
+        filters.push(['size', 'eq', fetchOptions.size]);
       }
       if (fetchOptions.condition && fetchOptions.condition !== 'all') {
-        qFilters.push(where('condition', '==', fetchOptions.condition));
+        filters.push(['condition', 'eq', fetchOptions.condition]);
       }
       if (fetchOptions.sellerId) {
-        qFilters.push(where('sellerId', '==', fetchOptions.sellerId));
+        filters.push(['sellerId', 'eq', fetchOptions.sellerId]);
       }
       if (fetchOptions.approvalStatus) {
-        qFilters.push(where('approvalStatus', '==', fetchOptions.approvalStatus));
+        filters.push(['approvalStatus', 'eq', fetchOptions.approvalStatus]);
       } else {
-        qFilters.push(where('approvalStatus', '==', 'approved'));
+        filters.push(['approvalStatus', 'eq', 'approved']);
       }
-      // Add more filters as needed
-      let itemsQuery = qFilters.length > 0 ? query(q, ...qFilters) : q;
-      const snapshot = await getDocs(itemsQuery);
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setItems(data);
+      if (fetchOptions.itemIds && fetchOptions.itemIds.length > 0) {
+        query = query.in('id', fetchOptions.itemIds);
+      }
+      // Apply filters
+      filters.forEach(([col, op, val]) => {
+        query = query.eq(col, val);
+      });
+      const { data, error } = await query;
+      if (error) throw error;
+      setItems(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       console.error(err);

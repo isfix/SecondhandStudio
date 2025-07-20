@@ -1,14 +1,13 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, Timestamp } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 
-function getMonthYear(ts) {
-  const date = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+function getMonthYear(ts: any) {
+  const date = typeof ts === 'string' ? new Date(ts) : ts instanceof Date ? ts : new Date();
   return `${date.getFullYear()}-${date.getMonth() + 1}`;
 }
 
-function percentChange(current, previous) {
+function percentChange(current: number, previous: number) {
   if (previous === 0) return current === 0 ? 0 : 100;
   return ((current - previous) / previous) * 100;
 }
@@ -16,14 +15,14 @@ function percentChange(current, previous) {
 export async function GET(request: NextRequest) {
   try {
     // Fetch users
-    const usersSnap = await getDocs(collection(db, 'users'));
-    const users = usersSnap.docs.map(doc => doc.data());
+    const { data: users = [], error: usersError } = await supabase.from('users').select('*');
+    if (usersError) throw usersError;
     // Fetch items
-    const itemsSnap = await getDocs(collection(db, 'items'));
-    const items = itemsSnap.docs.map(doc => doc.data());
+    const { data: items = [], error: itemsError } = await supabase.from('items').select('*');
+    if (itemsError) throw itemsError;
     // Fetch analytics events (if any)
-    const analyticsSnap = await getDocs(collection(db, 'analytics'));
-    const analyticsEvents = analyticsSnap.docs.map(doc => doc.data());
+    const { data: analyticsEvents = [], error: analyticsError } = await supabase.from('analytics').select('*');
+    if (analyticsError) throw analyticsError;
 
     // Calculate stats
     const totalUsers = users.length;
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
     const thisMonth = `${now.getFullYear()}-${now.getMonth() + 1}`;
     const lastMonth = `${now.getFullYear()}-${now.getMonth()}`;
     // Users
-    const usersByMonth = users.reduce((acc, u) => {
+    const usersByMonth = users.reduce((acc: any, u: any) => {
       const m = getMonthYear(u.createdAt || u.created_at || u.created_at_timestamp || now);
       acc[m] = (acc[m] || 0) + 1;
       return acc;
@@ -45,7 +44,7 @@ export async function GET(request: NextRequest) {
     const usersLastMonth = usersByMonth[lastMonth] || 0;
     const userChange = percentChange(usersThisMonth, usersLastMonth);
     // Items
-    const itemsByMonth = items.reduce((acc, i) => {
+    const itemsByMonth = items.reduce((acc: any, i: any) => {
       const m = getMonthYear(i.createdAt || i.created_at || i.created_at_timestamp || now);
       acc[m] = (acc[m] || 0) + 1;
       return acc;
@@ -54,7 +53,7 @@ export async function GET(request: NextRequest) {
     const itemsLastMonth = itemsByMonth[lastMonth] || 0;
     const itemChange = percentChange(itemsThisMonth, itemsLastMonth);
     // Views
-    const viewsByMonth = items.reduce((acc, i) => {
+    const viewsByMonth = items.reduce((acc: any, i: any) => {
       const m = getMonthYear(i.createdAt || i.created_at || i.created_at_timestamp || now);
       acc[m] = (acc[m] || 0) + (i.views || 0);
       return acc;
@@ -63,7 +62,7 @@ export async function GET(request: NextRequest) {
     const viewsLastMonth = viewsByMonth[lastMonth] || 0;
     const viewChange = percentChange(viewsThisMonth, viewsLastMonth);
     // Sales
-    const salesByMonth = items.filter(i => i.sellStatus === 'sold').reduce((acc, i) => {
+    const salesByMonth = items.filter((i: any) => i.sellStatus === 'sold').reduce((acc: any, i: any) => {
       const m = getMonthYear(i.updatedAt || i.updated_at || i.updated_at_timestamp || now);
       acc[m] = (acc[m] || 0) + (parseFloat(i.price) || 0);
       return acc;
@@ -73,11 +72,11 @@ export async function GET(request: NextRequest) {
     const salesChange = percentChange(salesThisMonth, salesLastMonth);
 
     // Item stats by category
-    const categories = [...new Set(items.map(item => item.category).filter(Boolean))];
+    const categories = [...new Set(items.map((item: any) => item.category).filter(Boolean))];
     const itemStats = {
       labels: categories,
-      views: categories.map(cat => items.filter(item => item.category === cat).reduce((sum, item) => sum + (item.views || 0), 0)),
-      likes: categories.map(cat => items.filter(item => item.category === cat).reduce((sum, item) => sum + (item.likes || 0), 0)),
+      views: categories.map(cat => items.filter((item: any) => item.category === cat).reduce((sum: number, item: any) => sum + (item.views || 0), 0)),
+      likes: categories.map(cat => items.filter((item: any) => item.category === cat).reduce((sum: number, item: any) => sum + (item.likes || 0), 0)),
     };
 
     // User growth (fake data for now)

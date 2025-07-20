@@ -3,8 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "./useAuth";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where, addDoc, deleteDoc } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 import { useItems } from "./useItems";
 
 export const useWishlist = () => {
@@ -27,10 +26,12 @@ export const useWishlist = () => {
     }
     setLoading(true);
     try {
-      const qWishlist = query(collection(db, 'wishlist'), where('userId', '==', user.id));
-      const snapshot = await getDocs(qWishlist);
-      const userWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setWishlist(userWishlist);
+      const { data, error } = await supabase
+        .from('wishlist')
+        .select('*')
+        .eq('userId', user.id);
+      if (error) throw error;
+      setWishlist(data || []);
     } catch (error) {
       console.error("Error fetching wishlist:", error);
       setWishlist([]);
@@ -47,10 +48,17 @@ export const useWishlist = () => {
     if (!user) return console.error("User not authenticated");
     try {
       // Check if already in wishlist
-      const qWishlist = query(collection(db, 'wishlist'), where('userId', '==', user.id), where('itemId', '==', itemId));
-      const snapshot = await getDocs(qWishlist);
-      if (!snapshot.empty) return;
-      await addDoc(collection(db, 'wishlist'), { userId: user.id, itemId });
+      const { data: existing, error: checkError } = await supabase
+        .from('wishlist')
+        .select('id')
+        .eq('userId', user.id)
+        .eq('itemId', itemId);
+      if (checkError) throw checkError;
+      if (existing && existing.length > 0) return;
+      const { error } = await supabase
+        .from('wishlist')
+        .insert([{ userId: user.id, itemId }]);
+      if (error) throw error;
       await fetchWishlist();
     } catch (error) {
       console.error("Error adding item to wishlist:", error);
@@ -60,9 +68,12 @@ export const useWishlist = () => {
   const removeItem = useCallback(async (itemId: string) => {
     if (!user) return console.error("User not authenticated");
     try {
-      const qWishlist = query(collection(db, 'wishlist'), where('userId', '==', user.id), where('itemId', '==', itemId));
-      const snapshot = await getDocs(qWishlist);
-      await Promise.all(snapshot.docs.map(docSnap => deleteDoc(docSnap.ref)));
+      const { error } = await supabase
+        .from('wishlist')
+        .delete()
+        .eq('userId', user.id)
+        .eq('itemId', itemId);
+      if (error) throw error;
       await fetchWishlist();
     } catch (error) {
       console.error("Error removing item from wishlist:", error);
