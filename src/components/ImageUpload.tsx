@@ -6,7 +6,8 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
-import { uploadToStorage, deleteFromStorage } from "@/lib/storage";
+import { deleteFromStorage } from "@/lib/storage";
+import { useToast } from "@/hooks/use-toast";
 
 interface ImageUploadProps {
   onImagesUploaded: (images: string[]) => void;
@@ -25,6 +26,7 @@ export const ImageUpload = ({ onImagesUploaded, maxImages = 5, existingImages = 
   const [uploadingImages, setUploadingImages] = useState<UploadingImage[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>(existingImages);
   const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newImages = acceptedFiles.slice(0, maxImages - uploadedImages.length);
@@ -52,7 +54,25 @@ export const ImageUpload = ({ onImagesUploaded, maxImages = 5, existingImages = 
           );
 
           const fileName = `items/${Date.now()}-${uploadingImage.file.name}`;
-          const url = await uploadToStorage(uploadingImage.file, fileName);
+          const response = await fetch('/api/storage/sign', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ path: fileName }),
+          });
+          const { signedUrl, path } = await response.json();
+
+          await fetch(signedUrl, {
+            method: 'PUT',
+            body: uploadingImage.file,
+            headers: {
+              'Content-Type': uploadingImage.file.type,
+            },
+          });
+
+          const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(path);
+          const url = publicUrl;
 
           setUploadingImages(prev => 
             prev.map(img => 
@@ -65,7 +85,11 @@ export const ImageUpload = ({ onImagesUploaded, maxImages = 5, existingImages = 
           return url;
         } catch (error) {
           console.error("Error uploading image:", error);
-          
+          toast({
+            title: "Upload Failed",
+            description: `The image "${uploadingImage.file.name}" failed to upload. Please try again.`,
+            variant: "destructive",
+          });
           setUploadingImages(prev => 
             prev.filter(img => img.id !== uploadingImage.id)
           );
@@ -112,6 +136,11 @@ export const ImageUpload = ({ onImagesUploaded, maxImages = 5, existingImages = 
       onImagesUploaded(newUploadedImages);
     } catch (error) {
       console.error("Error removing image:", error);
+      toast({
+        title: "Delete Failed",
+        description: "The image failed to delete. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

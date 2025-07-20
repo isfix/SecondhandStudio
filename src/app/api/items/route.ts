@@ -53,12 +53,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Auth should be checked on the client; for advanced security, use Firebase Admin SDK in a server function
   try {
+    const decodedToken = JSON.parse(request.headers.get('X-Decoded-Token') as string);
+    const userId = decodedToken.uid;
+
     const body = await request.json();
-    // Add server-side validation as needed
+    // Remove sellerId from the body to prevent spoofing
+    const { sellerId, ...itemData } = body;
+
     const newItem = {
-      ...body,
+      ...itemData,
+      sellerId: userId,
+      images: itemData.images || [],
       approvalStatus: 'pending',
       isActive: false,
       createdAt: Timestamp.now(),
