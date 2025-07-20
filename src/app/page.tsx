@@ -57,7 +57,9 @@ export default function Home() {
           className="object-cover object-center z-0"
           data-ai-hint="elegant fashion"
           priority
+          fetchPriority="high"
         />
+
         <div className="absolute inset-0 bg-neutral-700/50 z-10"></div>
         <div className="relative z-20 px-4 sm:px-6 lg:px-8 max-w-3xl">
           <motion.div 

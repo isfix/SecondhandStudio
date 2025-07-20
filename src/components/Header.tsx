@@ -78,8 +78,10 @@ export const Header = () => {
                       variant="ghost"
                       size="icon"
                       className="relative rounded-full"
+                      aria-label="User account menu"
                     >
                       {loggedInUser.photoURL ? (
+
                         <Image 
                           src={loggedInUser.photoURL} 
                           alt={loggedInUser.displayName || "User"} 
@@ -141,9 +143,11 @@ export const Header = () => {
                 size="icon"
                 className="md:hidden"
                 onClick={() => setShowMobileMenu(true)}
+                aria-label="Open main menu"
               >
                 <Menu className="h-6 w-6" />
               </Button>
+
             </div>
           </div>
         </div>

@@ -53,3 +53,5 @@ serviceAccountKey.json
 *.pem
 *.crt
 *.key
+Lighthouse Secondhand report.pdf
+LIGHTHOUSE.MD

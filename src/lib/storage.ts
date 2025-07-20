@@ -2,7 +2,8 @@ import { supabase } from './supabase';
 
 export const uploadToStorage = async (file: File, path: string) => {
   try {
-    const bucket = path.startsWith('profile-pictures/') ? 'profile-pictures' : 'items';
+    const bucket = path.startsWith('profile-pictures/') ? 'profile-pictures' : 'images';
+
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file, {
@@ -28,10 +29,11 @@ export const uploadToStorage = async (file: File, path: string) => {
 export const deleteFromStorage = async (path: string) => {
   try {
     const { error } = await supabase.storage
-      .from('items')
+      .from('images')
       .remove([path]);
 
     if (error) {
+
       throw error;
     }
   } catch (error) {
