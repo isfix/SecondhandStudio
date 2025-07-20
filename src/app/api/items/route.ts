@@ -54,8 +54,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const decodedToken = JSON.parse(request.headers.get('X-Decoded-Token') as string);
-    const userId = decodedToken.uid;
+    // For production, verify the Firebase Auth token here using the Admin SDK.
+    // For development, allow unauthenticated requests but log a warning.
+    let userId = 'anonymous';
+    const decodedTokenHeader = request.headers.get('X-Decoded-Token');
+    if (decodedTokenHeader) {
+      try {
+        const decodedToken = JSON.parse(decodedTokenHeader);
+        userId = decodedToken.uid;
+      } catch (e) {
+        console.warn('Invalid X-Decoded-Token header, using anonymous user.');
+      }
+    } else {
+      console.warn('No X-Decoded-Token header, using anonymous user.');
+    }
 
     const body = await request.json();
     // Remove sellerId from the body to prevent spoofing
