@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const totalUsers = users.length;
     const totalItems = items.length;
     const totalViews = items.reduce((sum, item) => sum + (item.views || 0), 0);
-    const totalSales = items.filter(item => item.sellStatus === 'sold').reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+    const totalSales = items.filter(item => item.sell_status === 'sold').reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
 
     // Calculate monthly stats
     const now = new Date();
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const lastMonth = `${now.getFullYear()}-${now.getMonth()}`;
     // Users
     const usersByMonth = users.reduce((acc: any, u: any) => {
-      const m = getMonthYear(u.createdAt || u.created_at || u.created_at_timestamp || now);
+      const m = getMonthYear(u.created_at || u.created_at_timestamp || now);
       acc[m] = (acc[m] || 0) + 1;
       return acc;
     }, {});
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const userChange = percentChange(usersThisMonth, usersLastMonth);
     // Items
     const itemsByMonth = items.reduce((acc: any, i: any) => {
-      const m = getMonthYear(i.createdAt || i.created_at || i.created_at_timestamp || now);
+      const m = getMonthYear(i.created_at || i.created_at_timestamp || now);
       acc[m] = (acc[m] || 0) + 1;
       return acc;
     }, {});
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const itemChange = percentChange(itemsThisMonth, itemsLastMonth);
     // Views
     const viewsByMonth = items.reduce((acc: any, i: any) => {
-      const m = getMonthYear(i.createdAt || i.created_at || i.created_at_timestamp || now);
+      const m = getMonthYear(i.created_at || i.created_at_timestamp || now);
       acc[m] = (acc[m] || 0) + (i.views || 0);
       return acc;
     }, {});
@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
     const viewsLastMonth = viewsByMonth[lastMonth] || 0;
     const viewChange = percentChange(viewsThisMonth, viewsLastMonth);
     // Sales
-    const salesByMonth = items.filter((i: any) => i.sellStatus === 'sold').reduce((acc: any, i: any) => {
-      const m = getMonthYear(i.updatedAt || i.updated_at || i.updated_at_timestamp || now);
+    const salesByMonth = items.filter((i: any) => i.sell_status === 'sold').reduce((acc: any, i: any) => {
+      const m = getMonthYear(i.updated_at || i.updated_at_timestamp || now);
       acc[m] = (acc[m] || 0) + (parseFloat(i.price) || 0);
       return acc;
     }, {});

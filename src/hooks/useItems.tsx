@@ -36,31 +36,26 @@ export const useItems = (options: UseItemsOptions = {}) => {
     setError(null);
     try {
       let query = supabase.from('items').select('*');
-      let filters = [];
       if (fetchOptions.category && fetchOptions.category !== 'all') {
-        filters.push(['category', 'eq', fetchOptions.category]);
+        query = query.eq('category', fetchOptions.category);
       }
       if (fetchOptions.size && fetchOptions.size !== 'all') {
-        filters.push(['size', 'eq', fetchOptions.size]);
+        query = query.eq('size', fetchOptions.size);
       }
       if (fetchOptions.condition && fetchOptions.condition !== 'all') {
-        filters.push(['condition', 'eq', fetchOptions.condition]);
+        query = query.eq('condition', fetchOptions.condition);
       }
       if (fetchOptions.sellerId) {
-        filters.push(['sellerId', 'eq', fetchOptions.sellerId]);
+        query = query.eq('seller_id', fetchOptions.sellerId);
       }
       if (fetchOptions.approvalStatus) {
-        filters.push(['approvalStatus', 'eq', fetchOptions.approvalStatus]);
+        query = query.eq('approval_status', fetchOptions.approvalStatus);
       } else {
-        filters.push(['approvalStatus', 'eq', 'approved']);
+        query = query.eq('approval_status', 'approved');
       }
       if (fetchOptions.itemIds && fetchOptions.itemIds.length > 0) {
         query = query.in('id', fetchOptions.itemIds);
       }
-      // Apply filters
-      filters.forEach(([col, op, val]) => {
-        query = query.eq(col, val);
-      });
       const { data, error } = await query;
       if (error) throw error;
       setItems(data || []);

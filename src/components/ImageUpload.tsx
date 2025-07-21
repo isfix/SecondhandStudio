@@ -78,7 +78,9 @@ export const ImageUpload = ({ onImagesUploaded, maxImages = 5, existingImages = 
           let url = publicUrl;
           // Fallback: if publicUrl is empty, try constructing it manually
           if (!url) {
-            url = `${supabase.storageUrl}/object/public/images/${path}`;
+            // Use Supabase's getPublicUrl method
+            const { data } = supabase.storage.from('images').getPublicUrl(path);
+            url = data.publicUrl;
             console.warn('Fallback public URL used:', url);
           }
 

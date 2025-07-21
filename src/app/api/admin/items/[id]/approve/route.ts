@@ -8,12 +8,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { error } = await supabase
       .from('items')
       .update({
-        approvalStatus: 'approved',
-        isActive: true,
-        adminNotes: adminNotes || null,
-        approvedAt: new Date().toISOString(),
-        approvedBy: approvedBy || null,
-        updatedAt: new Date().toISOString(),
+        approval_status: 'approved',
+        is_active: true,
+        admin_notes: adminNotes || null,
+        approved_at: new Date().toISOString(),
+        approved_by: approvedBy || null,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id);
     if (error) throw error;

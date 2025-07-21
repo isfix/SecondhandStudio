@@ -23,7 +23,7 @@ import { Separator } from "./ui/separator";
 
 export const Header = () => {
   const pathname = usePathname();
-  const { user, firebaseUser, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -41,7 +41,8 @@ export const Header = () => {
     navLinks.push({ href: "/admin", label: "Admin" });
   }
 
-  const loggedInUser = user || firebaseUser;
+  // Remove firebaseUser fallback, use only user
+  const loggedInUser = user;
 
   return (
     <>

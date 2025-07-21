@@ -1,7 +1,5 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, addDoc, Timestamp } from 'firebase/firestore';
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
@@ -22,12 +20,12 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    let q = collection(db, 'items');
+    let q = supabase.from('items');
     // Add Firestore query filters as needed
     // Example: if (filters.category) q = query(q, where('category', '==', filters.category));
-    const snapshot = await getDocs(q);
-    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    return NextResponse.json(items);
+    const { data, error } = await q.select('*');
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching items:', error);
     return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 });
@@ -40,13 +38,14 @@ export async function POST(request: NextRequest) {
     // Add validation as needed
     const newItem = {
       ...body,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       approvalStatus: 'pending',
       isActive: true,
     };
-    const docRef = await addDoc(collection(db, 'items'), newItem);
-    return NextResponse.json({ id: docRef.id, ...newItem }, { status: 201 });
+    const { data, error } = await supabase.from('items').insert([newItem]).select();
+    if (error) throw error;
+    return NextResponse.json({ id: data[0].id, ...newItem }, { status: 201 });
   } catch (error) {
     console.error('Error creating item:', error);
     return NextResponse.json({ error: 'Failed to create item' }, { status: 500 });

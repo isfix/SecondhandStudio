@@ -9,16 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 export default function Sell() {
-  const { user, firebaseUser, loading, refetchUser } = useAuth();
+  const { user, loading, refetchUser } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user && firebaseUser) {
+    if (!loading && !user) {
       setSyncing(true);
       refetchUser().finally(() => setSyncing(false));
     }
-  }, [user, firebaseUser, loading, refetchUser]);
+  }, [user, loading, refetchUser]);
 
   if (loading || syncing) {
     return (

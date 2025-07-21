@@ -68,7 +68,7 @@ const defaultValues: Omit<FormData, 'sellerId'> = {
 };
 
 export const ItemForm = ({ initialData, onFormSubmit }: ItemFormProps) => {
-  const { user, firebaseUser } = useAuth();
+  const { user } = useAuth();
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -119,9 +119,11 @@ export const ItemForm = ({ initialData, onFormSubmit }: ItemFormProps) => {
     setIsSubmitting(true);
     try {
       let token = null;
-      if (firebaseUser) {
-        token = await firebaseUser.getIdToken();
-      }
+      // Supabase user objects do not have getIdToken().
+      // If you need a token, use Supabase's auth methods. For now, skip token logic.
+      // if (user?.id) {
+      //   token = await user.getIdToken();
+      // }
       const response = await fetch('/api/items', {
         method: 'POST',
         headers: {

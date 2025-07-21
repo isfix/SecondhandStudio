@@ -11,7 +11,7 @@ export const useWishlist = () => {
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const wishlistItemIds = useMemo(() => wishlist.map(w => String(w.itemId)), [wishlist]);
+  const wishlistItemIds = useMemo(() => wishlist.map(w => String(w.item_id)), [wishlist]);
 
   const { items: wishlistItems, loading: itemsLoading } = useItems({
     itemIds: wishlistItemIds,
@@ -29,7 +29,7 @@ export const useWishlist = () => {
       const { data, error } = await supabase
         .from('wishlist')
         .select('*')
-        .eq('userId', user.id);
+        .eq('user_id', user.id);
       if (error) throw error;
       setWishlist(data || []);
     } catch (error) {
@@ -51,13 +51,13 @@ export const useWishlist = () => {
       const { data: existing, error: checkError } = await supabase
         .from('wishlist')
         .select('id')
-        .eq('userId', user.id)
-        .eq('itemId', itemId);
+        .eq('user_id', user.id)
+        .eq('item_id', itemId);
       if (checkError) throw checkError;
       if (existing && existing.length > 0) return;
       const { error } = await supabase
         .from('wishlist')
-        .insert([{ userId: user.id, itemId }]);
+        .insert([{ user_id: user.id, item_id: itemId }]);
       if (error) throw error;
       await fetchWishlist();
     } catch (error) {
@@ -71,8 +71,8 @@ export const useWishlist = () => {
       const { error } = await supabase
         .from('wishlist')
         .delete()
-        .eq('userId', user.id)
-        .eq('itemId', itemId);
+        .eq('user_id', user.id)
+        .eq('item_id', itemId);
       if (error) throw error;
       await fetchWishlist();
     } catch (error) {

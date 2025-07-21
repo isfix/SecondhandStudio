@@ -31,12 +31,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('condition', filters.condition);
     }
     if (filters.sellerId) {
-      query = query.eq('sellerId', filters.sellerId);
+      query = query.eq('seller_id', filters.sellerId);
     }
     if (filters.approvalStatus) {
-      query = query.eq('approvalStatus', filters.approvalStatus);
+      query = query.eq('approval_status', filters.approvalStatus);
     } else {
-      query = query.eq('approvalStatus', 'approved');
+      query = query.eq('approval_status', 'approved');
     }
     if (filters.itemIds && filters.itemIds.length > 0) {
       query = query.in('id', filters.itemIds);
@@ -59,16 +59,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: No user' }, { status: 401 });
     }
     const body = await request.json();
-    // Remove sellerId from the body to prevent spoofing
-    const { sellerId, ...itemData } = body;
+    // Remove seller_id from the body to prevent spoofing
+    const { seller_id, ...itemData } = body;
     const newItem = {
       ...itemData,
-      sellerId: user.id,
+      seller_id: user.id,
       images: itemData.images || [],
-      approvalStatus: 'pending',
-      isActive: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      approval_status: 'pending',
+      is_active: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase.from('items').insert([newItem]).select().single();
     if (error) throw error;

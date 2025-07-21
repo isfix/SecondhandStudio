@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 
 export default function Profile() {
-  const { user, loading: authLoading, firebaseUser, refetchUser } = useAuth();
+  const { user, loading: authLoading, refetchUser } = useAuth();
   const { items: userItems, loading: itemsLoading } = useItems({ 
     sellerId: user?.id, 
     includeAll: true,
@@ -74,7 +74,7 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
-    if (!user || !firebaseUser) return;
+    if (!user) return;
     setIsSaving(true);
 
     try {
@@ -94,15 +94,16 @@ export default function Profile() {
             newPhotoURL = publicUrl;
         }
 
-        await updateProfile(firebaseUser, { 
-            displayName: editData.displayName, 
-            photoURL: newPhotoURL 
-        });
+        // await updateProfile(user, { 
+        //     displayName: editData.displayName, 
+        //     photoURL: newPhotoURL 
+        // });
+        // TODO: Implement Supabase profile update here
 
-        if (firebaseUser.email !== editData.email) {
+        if (user.email !== editData.email) {
             // Note: Updating email requires re-authentication. Handle this flow if needed.
             // For now, we'll keep it simple and not allow email change from profile.
-            // await updateEmail(firebaseUser, editData.email);
+            // await updateEmail(user, editData.email);
         }
 
         const response = await fetch('/api/users/current', {
@@ -143,7 +144,7 @@ export default function Profile() {
     );
   }
 
-  if (!firebaseUser) {
+  if (!user) {
     return (
       <>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
